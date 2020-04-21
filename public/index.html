@@ -1,0 +1,148 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Fractals</title>
+</head>
+<body>
+  <script src="https://cdn.jsdelivr.net/npm/threejs-extras-examples@0.73.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/threejs-extras-examples@0.73.0/examples/js/controls/OrbitControls.js"></script>
+  <script>
+    var scene = new THREE.Scene();
+    var aspect = window.innerWidth / window.innerHeight;
+    var camera = new THREE.PerspectiveCamera( 75, aspect, 0.1, 1000 );
+    var renderer = new THREE.WebGLRenderer();
+    renderer.setSize( window.innerWidth, window.innerHeight );
+    document.body.appendChild( renderer.domElement );
+    var controls = new THREE.OrbitControls( camera, renderer.domElement );
+
+    camera.position.z = 5;
+    controls.update();
+
+    // cubes
+    // var fractal = cubeFractal(4, 3, new THREE.Vector3(0, 0, 0));
+    // scene.add(fractal);
+
+    // tetrahedron
+    // var fractal = tetrahedron(3, new THREE.Vector3(0, 0, 0));
+    // scene.add(fractal);
+
+    // sierpinski
+    var fractal = sierpinski(3, 3, new THREE.Vector3(0, 1.5, 0));
+    scene.add(fractal);
+
+    var render = function () {
+      requestAnimationFrame( render );
+      // fractal.rotation.y += 0.005;
+      controls.update();
+
+      renderer.render( scene, camera );
+    };
+
+    render();
+
+
+    ///////////////////////// fractal definitions /////////////////////////
+
+    function sierpinski(level, size, position) {
+      function move(x, y, z) {
+        return position.clone().add(new THREE.Vector3(x, y, z));
+      }
+      var group = new THREE.Group();
+      if (level < 1) {
+        group.add(tetrahedron(size, move(0, 0, 0)));
+      } else {
+        var nextLevel = level - 1;
+        var nextSize = size / 2;
+        var nextHeight = 3/4*nextSize;
+
+        var sqrt3 = Math.sqrt(3)
+
+        // top tetrahedron
+        group.add(sierpinski(nextLevel, nextSize, move(0, 0, 0)));
+
+        // leg tetrahedrons
+        group.add(sierpinski(nextLevel, nextSize, move(0, -nextHeight, -nextSize / sqrt3)));
+        group.add(sierpinski(nextLevel, nextSize, move(-nextSize / 2, -nextHeight, nextSize / 2 / sqrt3)));
+        group.add(sierpinski(nextLevel, nextSize, move(nextSize / 2, -nextHeight, nextSize / 2 / sqrt3)));
+      }
+      return group;
+    }
+
+    // size: length of all edges
+    // position: position of the top vertex
+    function tetrahedron(size, position) {
+      const geometry = new THREE.Geometry();
+      var sqrt3 = Math.sqrt(3);
+      geometry.vertices.push(
+        new THREE.Vector3(0, 0, -size/sqrt3), // 0
+        new THREE.Vector3(-size/2, 0, size/2/sqrt3), // 1
+        new THREE.Vector3(size/2, 0, size/2/sqrt3), // 2
+        new THREE.Vector3(0, 3/4*size, 0), // 3
+      );
+
+      /* top down view of tetrahedron
+         * (0)
+        * *
+       * *-*--- (3)
+  (1) * * * * (2)
+      */
+
+      geometry.faces.push(
+        // side triangles
+        new THREE.Face3(0, 1, 3),
+        new THREE.Face3(1, 2, 3),
+        new THREE.Face3(2, 0, 3),
+
+        // bottom triangle
+        new THREE.Face3(0, 2, 1),
+      );
+
+      geometry.faces[ 0].color = new THREE.Color('lightgreen');
+      geometry.faces[ 1].color = new THREE.Color('orange');
+      geometry.faces[ 2].color = new THREE.Color('lightblue');
+      geometry.faces[ 3].color = new THREE.Color('lightyellow');
+
+      const mesh = new THREE.MeshBasicMaterial({vertexColors: true});
+      var tetrahedron = new THREE.Mesh( geometry, mesh );
+      tetrahedron.position.set(position.x, position.y, position.z);
+      return tetrahedron;
+    }
+
+    function cubeFractal(level, size, position) {
+      var cubeGroup = new THREE.Group();
+      if (level >= 1) {
+        var nextLevel = level - 1;
+        var nextSize = size / 2;
+        var step = size / 2;
+        
+        function move(x, y, z) {
+          return position.clone().add(new THREE.Vector3(x, y, z));
+        }
+
+        cubeGroup.add(cubeFractal(nextLevel, nextSize, move(step, step, step)));
+        cubeGroup.add(cubeFractal(nextLevel, nextSize, move(-step, step, step)));
+        cubeGroup.add(cubeFractal(nextLevel, nextSize, move(step, -step, step)));
+        cubeGroup.add(cubeFractal(nextLevel, nextSize, move(-step, -step, step)));
+        cubeGroup.add(cubeFractal(nextLevel, nextSize, move(step, step, -step)));
+        cubeGroup.add(cubeFractal(nextLevel, nextSize, move(-step, step, -step)));
+        cubeGroup.add(cubeFractal(nextLevel, nextSize, move(step, -step, -step)));
+        cubeGroup.add(cubeFractal(nextLevel, nextSize, move(-step, -step, -step)));
+        cubeGroup.add(cube(size, position));
+      }
+      return cubeGroup;
+    }
+
+    function cube(size, position) {
+      console.log(position);
+      var geometry = new THREE.BoxGeometry( size, size, size );
+      var mesh = new THREE.MeshNormalMaterial();
+      var cube = new THREE.Mesh( geometry, mesh );
+      cube.position.set(position.x, position.y, position.z);
+      console.log(cube);
+      return cube;
+    }
+
+  </script>
+</body>
+</html>
